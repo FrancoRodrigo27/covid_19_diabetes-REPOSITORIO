@@ -1,0 +1,172 @@
+---
+title: "COVID_19_DIABETES"
+format: html
+editor: visual
+---
+
+## "Imputación de datos de pacientes con COVID-19 y diabetes usando MICE"
+
+-   En este documento, se llevará a cabo un análisis de los datos de pacientes diagnosticados con COVID-19 y diabetes, utilizando el método de imputación múltiple de datos faltantes **(MICE, por sus siglas en inglés).** El propósito de este proceso es manejar los valores perdidos en las variables claves para el análisis, de manera que se obtengan estimaciones más precisas y completas en la investigación. A través de este procedimiento, se busca obtener resultados confiables que ayuden a comprender mejor la relación entre variables clínicas y el desenlace de los pacientes, en especial en cuanto a su mortalidad y gravedad.
+
+-   El análisis sigue una serie de pasos que incluyen la carga y preparación de los datos, la selección de métodos de imputación para variables continuas y categóricas, y la evaluación de la calidad de las imputaciones. En primer lugar, se procederá a contar los valores faltantes por columna y a visualizar los patrones de datos faltantes, lo que permitirá entender mejor cómo distribuyen los valores ausentes en las distintas variables. Posteriormente, se utilizarán técnicas de imputación para las variables seleccionadas, diferenciando entre las variables continuas **(como los niveles de glucosa y ferritina)** y las variables categóricas **(como la severidad y el desenlace del paciente).**
+
+-   Una vez realizada la imputación, se procederá a evaluar los resultados de las imputaciones mediante gráficos y análisis descriptivos, como las visualizaciones de la distribución de los valores imputados. Además, se ajustará un modelo de regresión logística para evaluar el impacto de diversas variables clínicas **(como la glucosa y la ferritina)** sobre el desenlace del paciente, usando los datos imputados. Este análisis se presentará de forma clara mediante tablas que resalten los resultados más relevantes, como los odds ratios ajustados y los valores p.
+
+-   El uso de MICE para la imputación de datos permitirá manejar de manera robusta los valores perdidos, garantizando que las conclusiones obtenidas sean basadas en el análisis completo de los datos disponibles, sin la necesidad de eliminar observaciones con datos faltantes. Este enfoque es crucial en estudios de salud, donde los datos incompletos son comunes y pueden sesgar los resultados si no se manejan adecuadamente.
+
+## Instalar y cargar los paquetes
+
+Instalamos y cargamos los paquetes necesarios para realizar la imputación y análisis de datos. Datos perdidos en investigación en salud
+
+```{r}
+# Instalar paquetes si no están instalados
+if (!requireNamespace("mice", quietly = TRUE)) install.packages("mice")
+if (!requireNamespace("ggmice", quietly = TRUE)) install.packages("ggmice")
+if (!requireNamespace("tidyverse", quietly = TRUE)) install.packages("tidyverse")
+if (!requireNamespace("here", quietly = TRUE)) install.packages("here")
+if (!requireNamespace("rio", quietly = TRUE)) install.packages("rio")
+if (!requireNamespace("gtsummary", quietly = TRUE)) install.packages("gtsummary")
+
+# Cargar paquetes
+library(mice)
+library(ggmice)
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary)
+# cargar el dataset
+data <- read_csv("C:/Users/Franco Rodrigo/Desktop/DATA/covid_19_diabetes.csv")
+```
+
+En investigaciones en salud, como estudios sobre pacientes con COVID-19 y diabetes, los datos faltantes son frecuentes debido a la falta de registro en historias clínicas o a la omisión de ciertas pruebas por parte del personal médico. Por ejemplo, los niveles de glucosa o ferritina pueden no estar disponibles para todos los pacientes. La práctica común de eliminar observaciones con datos faltantes (análisis de casos completos) puede introducir sesgos y reducir la potencia estadística, especialmente en datasets pequeños.
+
+## 2 Imputación de datos
+
+La imputación de datos permite aprovechar todas las observaciones disponibles, mejorando la precisión de los análisis. En este ejercicio, utilizaremos la imputación múltiple mediante el paquete `mice` en R, una técnica avanzada que genera múltiples conjuntos de datos imputados para reflejar la incertidumbre asociada a los valores faltantes, superando métodos más simples como el reemplazo por la media.
+
+## 3 El dataset para este ejercicio
+
+Utilizaremos un conjunto de datos ficticio sobre 686 pacientes con COVID-19 y diabetes. Este dataset incluye variables como edad (en años), severidad de la enfermedad (leve, moderada, grave), raza (negra, blanca, asiática, latina), glucosa (mg/dL), ferritina (ng/mL) y desenlace (fallecido o no). Algunas de estas variables presentan valores faltantes.
+
+```{r}
+# cargar el dataset
+data <- read_csv("C:/Users/Franco Rodrigo/Desktop/DATA/covid_19_diabetes.csv")
+# observamos los datos:
+head(data)
+```
+
+## 4 Realizando la imputación de datos
+
+### 4.1 ¿Dónde están los valores perdidos?
+
+Primero, identificamos las variables con datos faltantes usando `colSums()` y visualizamos los patrones de pérdida con `plot_pattern()` del paquete `ggmice`.4.2 Comparación de participantes con y sin valores perdidos
+
+```{r}
+# Contar valores NA por columna
+colSums(is.na(data))
+
+# Visualizar patrones de datos faltantes
+data %>%
+  select(edad, severidad, raza_negra, raza_blanca, asiatico, latino, Glucosa, Ferritina, desenla_fallecido) %>%  # Corregidos "glucosa" a "Glucosa" y "ferritina" a "Ferritina"
+  ggmice::plot_pattern(square = TRUE, rotate = TRUE)
+```
+
+### Comparación de participantes con y sin valores perdidos
+
+Comparamos las características de los pacientes con y sin valores perdidos en la variable `glucosa` para evaluar si la imputación es necesaria.
+
+```{r}
+tabla_glucosa <- data %>%
+  select(edad, severidad, raza_negra, raza_blanca, asiatico, latino, Glucosa, Ferritina, desenla_fallecido) %>% 
+  mutate(missing = factor(is.na(Glucosa), levels = c(FALSE, TRUE), labels = c("Sin NA", "Con NA"))) %>%  
+  tbl_summary(by = missing, statistic = list(all_continuous() ~ "{mean} ({sd})", all_categorical() ~ "{n} ({p}%)")) %>%
+  modify_header(label = "**Variable**", all_stat_cols() ~ "**{level}**<br>N = {n} ({style_percent(p, digits=1)}%)") %>%
+  modify_caption("Características según valores perdidos en Glucosa") %>%
+  bold_labels()
+
+# Mostrar la tabla
+tabla_glucosa
+```
+
+Si las diferencias son significativas, la imputación será preferible al análisis de casos completos.
+
+### 4.3 ¿Qué variables debo incluir en el proceso de imputación?
+
+Incluimos todas las variables relevantes para los análisis posteriores, incluso aquellas sin valores perdidos, para que el modelo de imputación sea robusto. Las variables categóricas deben convertirse a factores.
+
+```{r}
+input_data <- data %>%
+  select(edad, severidad, raza_negra, raza_blanca, asiatico, latino, Glucosa, Ferritina, desenla_fallecido) %>%  # Corregidos "glucosa" a "Glucosa" y "ferritina" a "Ferritina"
+  mutate(severidad = as.factor(severidad),
+         raza_negra = as.factor(raza_negra),
+         raza_blanca = as.factor(raza_blanca),
+         asiatico = as.factor(asiatico),
+         latino = as.factor(latino),
+         desenla_fallecido = as.factor(desenla_fallecido))
+```
+
+# 4.4 La función `mice()` para imputar datos
+
+Usamos `mice()` para imputar los datos, especificando el número de imputaciones (`m`), una semilla para reproducibilidad, y métodos de imputación según el tipo de variable.
+
+```{r}
+# Definir métodos de imputación
+method_vector <- rep("", ncol(input_data))  # Iniciar el vector vacío
+
+# Asignar métodos para las columnas continuas (ej. "Glucosa", "Ferritina")
+method_vector[names(input_data) %in% c("Glucosa", "Ferritina")] <- "pmm"
+
+# Asignar métodos para las columnas categóricas o politémicas (ej. "severidad", "raza_negra", etc.)
+method_vector[names(input_data) %in% c("severidad", "raza_negra", "raza_blanca", "asiatico", "latino", "desenla_fallecido")] <- "logreg"
+
+# Realizar imputación con el paquete mice
+data_imputada <- mice(input_data, m = 20, method = method_vector, maxit = 20, seed = 123, print = FALSE)
+
+# Ver el resumen del objeto imputado
+summary(data_imputada)
+```
+
+# 5 Analizando los datos imputados
+
+Verificamos la plausibilidad de los valores imputados comparándolos con los observados.
+
+```{r}
+# Visualizar imputación de la variable Glucosa
+ggmice(data_imputada, aes(x = .imp, y = Glucosa)) + 
+  geom_jitter(height = 0, width = 0.25) +
+  geom_boxplot(width = 0.5, size = 1, alpha = 0.55, outlier.shape = NA) +
+  labs(x = "Número de imputación")
+
+# Para la variable desenla_fallecido:
+
+data_imputada_l <- complete(data_imputada, "long", include = TRUE)
+data_imputada_l <- data_imputada_l %>%
+  mutate(imputed = .imp > 0,
+         imputed = factor(imputed, levels = c(FALSE, TRUE), labels = c("Observado", "Imputado")))
+
+# Tabla de proporciones para desenla_fallecido e imputación
+prop.table(table(data_imputada_l$desenla_fallecido, data_imputada_l$imputed), margin = 2) 
+```
+
+Los valores imputados deben ser coherentes con los observados en términos de rango y distribución.
+
+### 5.1 Procedimientos adicionales luego de la imputación
+
+Realizamos una regresión logística para evaluar el efecto de las variables sobre el desenlace `desenla_fallecido`, usando los datos imputados.
+
+```{r}
+# Modelo de regresión logística
+modelo <- with(data_imputada, glm(desenla_fallecido ~ edad + severidad + Glucosa + Ferritina, family = binomial(link = "logit")))  # Corregido "glucosa" y "ferritina"
+
+# Presentar resultados con gtsummary
+tabla_resultados <- tbl_regression(modelo, exponentiate = TRUE) %>%
+  bold_p(t = 0.05) %>%
+  modify_header(estimate = "**OR ajustado**", p.value = "**p valor**")
+
+# Mostrar la tabla
+tabla_resultados
+```
+
+Este análisis combina automáticamente los resultados de las 20 imputaciones, proporcionando estimaciones ajustadas y sus intervalos de confianza.
+
+Este documento es reproducible y adaptable a otros datasets ajustando las variables y rutas de archivo según sea necesario.

@@ -1,0 +1,251 @@
+---
+title: "ENTREGA 3 - PC2, COVID Y DIABETES"
+format: html
+editor: Grupo 7 
+---
+
+# Integrantes
+
+-   ANDREA FERNANDA SANCHEZ PACHAS
+
+<!-- -->
+
+-   FRANCO RODRIGO CHOQUE ANGULO
+
+<!-- -->
+
+-   GISELLE FERNANDA TRILLO LLANCARI
+
+<!-- -->
+
+-   JUAN EROS IZZARMALI HONORATO RAMIREZ
+
+<!-- -->
+
+-   NIURKA VALENTINA TORRES FARFAN
+
+<!-- -->
+
+-   OSEAS ESCOBAR MELGAR
+
+# Introducción
+
+Este estudio emplea análisis estadísticos sobre el conjunto de datos `covid_19_diabetes.csv`, el cual recopila información clínica de pacientes diagnosticados con COVID-19, incluyendo variables relacionadas con la edad, presencia de diabetes mellitus y tiempo de hospitalización.
+
+***Se desarrollan tres procedimientos analíticos con el propósito de identificar patrones relevantes:***
+
+-   **Modelo de regresión lineal simple** para estimar cómo varía la duración de la hospitalización en función de la edad del paciente.
+
+-   **Prueba t de Student para muestras independientes**, que evalúa si existe una diferencia significativa en los días de hospitalización entre pacientes con diagnóstico de diabetes y aquellos sin esta condición.
+
+-   **Análisis de varianza (ANOVA)** que investiga si hay diferencias estadísticamente significativas en la duración de la hospitalización entre distintos grupos etarios.
+
+Estos análisis permiten explorar el efecto de variables clínicas clave sobre la estancia hospitalaria, facilitando una comprensión más profunda del perfil de riesgo en pacientes con COVID-19.
+
+# Instalación de paquetes necesarios
+
+Para llevar a cabo los análisis estadísticos y la visualización de resultados, es fundamental contar con ciertos paquetes en R. A continuación, se describen los paquetes requeridos y su propósito:
+
+-   **`ggplot2`**: Utilizado para crear gráficos elegantes y personalizados, incluyendo visualizaciones de regresión, comparaciones de grupos y resultados de ANOVA.
+
+-   **`dplyr`**: Proporciona funciones eficientes para la manipulación y transformación de datos, como filtrado, agrupamiento y resumen.
+
+-   **`readr`** o **`readxl`**: Permiten importar datos desde archivos `.csv` o Excel, respectivamente.
+
+-   **`stats`**: Paquete base de R que contiene funciones fundamentales para realizar regresión lineal, pruebas t y ANOVA.
+
+-   **`car`** *(opcional)*: Útil para obtener resultados más detallados en análisis de varianza y realizar pruebas adicionales, como Levene para homogeneidad de varianzas.
+
+```{r}
+
+# Se instalan si no están ya instalados en el sistema.
+if (!require(ggplot2)) install.packages("ggplot2")  # Para visualización
+if (!require(dplyr)) install.packages("dplyr")      # Para manipulación de datos
+if (!require(stats)) install.packages("stats")      # Para análisis estadísticos (incluido en R base)
+if (!require(car)) install.packages("car")          # Para pruebas de supuestos en ANOVA
+```
+
+# Carga de paquetes necesarios
+
+Antes de realizar cualquier análisis, es necesario cargar los paquetes que proporcionan las funciones necesarias para importar, manipular, analizar y visualizar los datos. Estos paquetes extienden la funcionalidad base de R y permiten trabajar de forma más eficiente.
+
+```{r}
+
+library(ggplot2)  # Para gráficos
+library(dplyr)    # Para manipulación de datos
+library(stats)    # Para regresión, t-test y ANOVA
+library(car)      # Para pruebas de supuestos en ANOVA
+```
+
+# Carga del dataset
+
+-   Para iniciar el análisis, es fundamental cargar correctamente el archivo de datos. En este caso, el dataset se encuentra en un archivo llamado **`covid_19_diabetes.csv`**, ubicado dentro de una carpeta llamada **`DATA`** que está en el **Escritorio** del usuario.
+
+-   R requiere que se especifique correctamente la **ruta absoluta** del archivo o que el directorio de trabajo se establezca previamente en la ubicación correspondiente. Si el nombre del equipo o usuario es `Tusuario`, la ruta completa del archivo sería similar a:
+
+```{r}
+
+# Leer el archivo CSV desde la ruta completa
+data <- read.csv("C:/Users/Tu Usuario/Desktop/DATA/covid_19_diabetes.csv",
+                 stringsAsFactors = TRUE,
+                 na.strings = c("", "NA"))
+
+# Verificar la estructura del dataset
+str(data)
+summary(data)
+
+```
+
+# Regresión Lineal Simple:
+
+Se aplica una regresión lineal simple para analizar si la edad de los pacientes predice la duración de su hospitalización por COVID-19. La variable dependiente es `duraci_hospita_diaz` y la independiente es `Edad`. Este análisis busca identificar si los pacientes de mayor edad tienden a permanecer más tiempo hospitalizados. Se asume una relación lineal entre las variables, normalidad de los residuos, homocedasticidad e independencia entre observaciones.
+
+```{r}
+
+# Cargar librerías necesarias
+library(dplyr)
+library(ggplot2)
+library(car)
+
+# Filtrar datos para eliminar valores faltantes en las variables de interés
+data_reg <- data %>% filter(!is.na(duraci_hospita_diaz) & !is.na(Edad))
+
+# Ajustar el modelo de regresión lineal
+modelo_lineal <- lm(duraci_hospita_diaz ~ Edad, data = data_reg)
+
+# Resumen del modelo
+summary(modelo_lineal)
+
+# Visualización de la regresión
+ggplot(data_reg, aes(x = Edad, y = duraci_hospita_diaz)) +
+  geom_point() +
+  geom_smooth(method = "lm", col = "blue") +
+  labs(title = "Regresión Lineal: Duración de Hospitalización vs Edad",
+       x = "Edad",
+       y = "Duración de Hospitalización (días)") +
+  theme_minimal()
+
+# Verificación de supuestos
+
+# Normalidad de residuos (gráfico Q-Q)
+qqPlot(modelo_lineal, main = "Gráfico Q-Q de los Residuos")
+
+# Homocedasticidad (residuos vs valores ajustados)
+plot(modelo_lineal, which = 1_
+
+```
+
+# Prueba de T de student para muestras independientes:
+
+**Qué se realiza:**
+
+\
+Se lleva a cabo una comparación entre las medias de dos grupos independientes: pacientes que fallecieron durante su hospitalización (grupo con desenlace_fallecido = "Sí") y pacientes que sobrevivieron (grupo con desenlace_fallecido = "No"). La variable que se evalúa es la duración promedio de la hospitalización en cada grupo.
+
+**Por qué se realiza:**
+
+\
+El objetivo es determinar si existe una diferencia estadísticamente significativa en el tiempo promedio de hospitalización entre los pacientes que fallecieron y aquellos que no. Esto puede indicar si el desenlace de fallecimiento está asociado con una mayor o menor duración de la estancia hospitalaria, lo cual puede aportar información relevante para la comprensión del impacto clínico y la gestión de los pacientes.
+
+```{r}
+
+# Cargar librerías necesarias
+library(dplyr)
+library(car)
+library(ggplot2)
+
+# Filtrar datos para pacientes hospitalizados con valores no faltantes
+data_ttest <- data %>% filter(!is.na(duraci_hospita_diaz) & !is.na(desenla_fallecido))
+
+# Asegurarnos de que desenla_fallecido es un factor con los niveles correctos
+data_ttest$desenla_fallecido <- as.factor(data_ttest$desenla_fallecido)
+levels(data_ttest$desenla_fallecido)  # Verificamos los niveles (deberían ser "Sí" y "No")
+
+# Dividir los datos en dos grupos según desenla_fallecido
+grupo_fallecido <- data_ttest$duraci_hospita_diaz[data_ttest$desenla_fallecido == "Sí"]
+grupo_no_fallecido <- data_ttest$duraci_hospita_diaz[data_ttest$desenla_fallecido == "No"]
+
+# Verificamos si ambos grupos tienen datos
+if (length(grupo_fallecido) == 0 || length(grupo_no_fallecido) == 0) {
+  stop("Error: Uno de los grupos (desenla_fallecido = 'Sí' o 'No') no tiene datos. Verifica los niveles de la variable desenla_fallecido.")
+}
+
+# Verificar normalidad con prueba de Shapiro-Wilk
+shapiro.test(grupo_fallecido)
+shapiro.test(grupo_no_fallecido)
+
+# Verificar homocedasticidad con prueba de Levene
+leveneTest(duraci_hospita_diaz ~ desenla_fallecido, data = data_ttest)
+
+# Realizar la prueba t de Student
+t_test <- t.test(grupo_fallecido, grupo_no_fallecido, var.equal = TRUE)
+
+# Mostrar resultados
+print(t_test)
+
+# Gráfico: Boxplot para comparar los grupos
+ggplot(data_ttest, aes(x = desenla_fallecido, y = duraci_hospita_diaz, fill = desenla_fallecido)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+    title = "Duración de hospitalización según desenlace (fallecido)",
+    x = "Fallecido",
+    y = "Duración de hospitalización (días)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+# Análisis de varianza (ANOVA)
+
+**Qué se realiza:**\
+Se analiza si existen diferencias significativas en la duración promedio de la hospitalización entre distintos grupos definidos según la categoría de edad. En este caso, la variable edad se considera como un factor categórico que divide a los pacientes en diferentes rangos o grupos etarios, y se compara la duración de la hospitalización entre estos grupos.
+
+**Por qué se realiza:**\
+El propósito de este análisis es evaluar si la duración de la estancia hospitalaria varía de manera significativa dependiendo de la edad del paciente. Identificar diferencias entre grupos etarios puede ayudar a entender cómo la edad influye en el proceso de recuperación o gravedad de la enfermedad, lo cual es fundamental para diseñar estrategias clínicas y de atención personalizadas.
+
+```{r}
+
+# Filtrar datos para eliminar valores faltantes
+data_anova <- data %>% filter(!is.na(duraci_hospita_diaz) & !is.na(edad))
+
+# Convertir la variable edad a factor si no lo es
+data_anova$edad <- as.factor(data_anova$edad)
+
+# Verificar normalidad por grupo con Shapiro-Wilk
+data_anova %>% group_by(edad) %>% summarise(p_value = shapiro.test(duraci_hospita_diaz)$p.value)
+
+# Verificar homocedasticidad con prueba de Levene
+leveneTest(duraci_hospita_diaz ~ edad, data = data_anova)
+
+# Realizar ANOVA
+anova_model <- aov(duraci_hospita_diaz ~ edad, data = data_anova)
+
+# Resumen del ANOVA
+summary(anova_model)
+
+# Si el ANOVA es significativo, realizar prueba post-hoc de Tukey
+if (summary(anova_model)[[1]][["Pr(>F)"]][1] < 0.05) {
+  tukey_result <- TukeyHSD(anova_model)
+  print(tukey_result)
+}
+
+# Visualización con boxplot
+ggplot(data_anova, aes(x = edad, y = duraci_hospita_diaz, fill = edad)) +
+  geom_boxplot() +
+  labs(title = "Duración de Hospitalización por Categoría de Edad",
+       x = "Categoría de Edad", y = "Duración de Hospitalización (días)") +
+  theme_minimal()
+```
+
+# Conclusión
+
+-   En este análisis se investigó la posible relación entre la duración de la hospitalización y dos variables clave: la edad de los pacientes y el desenlace clínico relacionado con el fallecimiento, en una población de pacientes con diagnóstico de COVID-19 y diabetes.
+
+-   Mediante el uso de regresión lineal, se evaluó si la edad influye de manera significativa en el tiempo que los pacientes permanecen hospitalizados, permitiendo cuantificar el impacto de la edad como variable continua sobre la duración de la estancia.
+
+-   La prueba t de Student para muestras independientes se empleó para comparar la duración promedio de la hospitalización entre los pacientes que fallecieron y aquellos que sobrevivieron, con el fin de determinar si existe una diferencia estadísticamente significativa en la estancia hospitalaria según el desenlace.
+
+-   Además, se aplicó un análisis de varianza (ANOVA) para explorar si la duración de la hospitalización varía entre diferentes grupos etarios categorizados. En caso de encontrar diferencias significativas, se realizaron pruebas post-hoc para identificar específicamente cuáles grupos de edad presentan variaciones significativas entre sí.
+
+-   Finalmente, es importante destacar que la interpretación de estos resultados se realizó bajo la consideración estricta de los supuestos estadísticos correspondientes (normalidad, homogeneidad de varianzas, independencia, entre otros), asegurando así la validez y confiabilidad de las conclusiones obtenidas.

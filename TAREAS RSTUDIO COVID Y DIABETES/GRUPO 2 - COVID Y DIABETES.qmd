@@ -1,0 +1,128 @@
+
+---
+title: "Análisis del Dataset COVID-19 y Diabetes"
+author: 
+  - Sánchez Pachas, Andrea Fernanda
+  - Trillo Llancari, Giselle Fernanda
+  - Honorato Ramirez, Juan Eros Izzarmaly
+  - Escobar Melgar, Oseas
+  - Torres Farfán, Niurka Valentina
+  - Choque Angulo, Franco Rodrigo
+output: html_document
+---
+
+## Introducción
+
+Este análisis se enfoca en el estudio de la relación entre COVID-19 y diabetes en la población. El objetivo es realizar un análisis descriptivo de los datos disponibles para identificar patrones y relaciones relevantes. A continuación se presentan los pasos seguidos para la limpieza, análisis y visualización de los datos, con un enfoque particular en las variables categóricas y continuas del dataset.
+
+## Instalación de Paquetes Necesarios
+
+Antes de comenzar el análisis, es necesario instalar y cargar los paquetes requeridos para la manipulación de datos y la creación de tablas estadísticas.
+
+```{r}
+# Instalar los paquetes necesarios
+install.packages("dplyr")
+install.packages("gt")
+install.packages("ggplot2")
+install.packages("janitor")
+install.packages("gtsummary")
+
+# Cargar los paquetes
+library(dplyr)
+library(gt)
+library(ggplot2)
+library(janitor)
+library(gtsummary)
+```
+
+## Carga de Datos
+Cargamos el dataset, modificamos el TuUsuario por el nombre de nuestro computador y ponemos el dataset en la carpeta DATA de nuestro escritorio. 
+```{r}
+# Cargar el dataset
+covid_data <- read.csv("/Users/TuUsuario/Desktop/DATA/covid_19_diabetes.csv")
+
+# Ver las primeras filas del dataset
+head(covid_data)
+```
+
+## Resumen de Variables Categóricas y Continuas
+
+### Variables Categóricas
+
+Las variables categóricas en el dataset incluyen "pac_fue_hospital" (Hospitalización), "desenla_fallecido" (Fallecido), y "raza_negra", "raza_blanca", "asiatico", "latino" (etnicidad), que se describen a continuación:
+
+```{r}
+# Resumen de variables categóricas
+covid_data %>% 
+  select(pac_fue_hospital, desenla_fallecido, raza_negra, raza_blanca, asiatico, latino) %>% 
+  table()
+```
+
+### Variables Continuas
+
+Las variables continuas incluyen "Edad" y "Severidad", entre otras, que se analizarán mediante estadísticas descriptivas:
+
+```{r}
+# Resumen de variables continuas
+covid_data %>% 
+  select(edad, severidad, Ferritina_mayor_300, Proteína_C_reactiva) %>% 
+  summary()
+```
+
+### Procedimiento para Resumir Datos
+
+El procedimiento para resumir los datos se puede realizar mediante la función `summary()`, que ofrece un resumen estadístico básico de las variables. Esto incluye la media, mediana, mínimo, máximo y cuartiles para las variables numéricas.
+
+```{r}
+# Resumen de las variables del dataset
+summary(covid_data)
+```
+
+## Recodificación de Variables y Adición de Nombres Correctos
+
+Se realizó la recodificación de algunas variables para asignarles nombres más comprensibles. Además, se renombraron columnas para mejorar la legibilidad del dataset:
+
+```{r}
+# Recodificación y renombrado de variables
+covid_data <- covid_data %>% 
+  rename(
+    Edad = Edad,  # Correct column name
+    Severidad = severidad,
+    Hospitalizado = pac_fue_hospital,
+    Fallecido = desenla_fallecido
+  )
+```
+
+## Generación de Estadísticos Descriptivos
+
+A continuación, se muestran los estadísticos descriptivos generados utilizando la función `summary()` para obtener un análisis inicial de las variables continuas. También se utiliza la función `tbl_summary()` de `gtsummary` para generar una tabla más detallada de los estadísticos descriptivos con un desglose por hospitalización:
+
+```{r}
+# Generación de estadísticos descriptivos con summary()
+covid_data %>% 
+  select(Edad, Severidad, Hospitalizado, Fallecido) %>% 
+  summary()
+
+# Generación de la tabla descriptiva con gtsummary
+tabla_resumen <- covid_data %>%
+  select(Edad, Severidad, Hospitalizado, Fallecido, raza_negra, raza_blanca, asiatico, latino) %>%
+  tbl_summary(by = Hospitalizado)
+
+# Mostrar la tabla
+tabla_resumen
+```
+
+## Configuración de Estilo e Idioma
+
+Se configuraron los estilos para mejorar la presentación y visualización del análisis, además de ajustar el idioma del análisis a español:
+
+```{r}
+# Configuración de idioma y estilo
+options(huxtable.language = "es")
+```
+
+## Conclusión
+
+En este análisis hemos explorado las relaciones entre COVID-19 y diabetes utilizando un conjunto de datos detallado. A través de un enfoque descriptivo, hemos podido obtener una visión general sobre la distribución de las variables categóricas y continuas. Además, realizamos una recodificación y renombrado de variables para mejorar la legibilidad del dataset y facilitar el análisis posterior.
+
+La implementación de tablas descriptivas y la configuración adecuada de estilo e idioma permiten una presentación clara y comprensible de los resultados.

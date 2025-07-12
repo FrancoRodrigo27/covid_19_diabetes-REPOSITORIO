@@ -1,0 +1,121 @@
+---
+title: "COVID Y DIABETES"
+format: html
+editor: GRUPO 7
+---
+
+# Integrantes:
+
+Andrea Fernanda Sánchez Pachas
+
+Franco Rodrigo Choque Angulo
+
+Giselle Fernanda Trillo Llancari
+
+Juan Eros Izzarmali Honorato Ramirez
+
+Niurka Valentina Torres Farfán
+
+Oseas Escobar Melgar
+
+# Introducción
+
+Este estudio se centra en la evaluación del impacto que la pandemia de COVID-19 ha tenido sobre el manejo de la diabetes tipo 1 (T1DM) en Perú. A lo largo de la crisis sanitaria, los pacientes con enfermedades crónicas, como la diabetes, han experimentado múltiples dificultades debido a las restricciones impuestas en los servicios de salud, la interrupción de tratamientos regulares y la falta de acceso a los recursos médicos esenciales. El objetivo principal de este análisis es examinar cómo la crisis sanitaria afectó tanto el acceso a la atención médica como la disponibilidad de medicamentos y dispositivos necesarios para un adecuado control de la diabetes tipo 1 en los afectados.
+
+# Instalación y carga del paquete epiR
+
+Primero, necesitamos asegurarnos de que el paquete epiR esté instalado y cargado en R. Si no está instalado, se instalará automáticamente con el siguiente código:
+
+```{r}
+# Instalar y cargar el paquete epiR si no está instalado
+if (!require(epiR)) {
+  install.packages("epiR")
+}
+library(epiR)
+```
+
+Este código verifica si epiR está disponible; si no lo está, lo instala y luego lo carga en el entorno de R.
+
+# Paso 2: Cálculo de muestra para un estudio de prevalencia
+
+Para un estudio de prevalencia, utilizaremos la función epi.sssimpleestb del paquete epiR, que calcula el tamaño de muestra necesario para estimar una prevalencia con una precisión dada. Vamos a definir un caso basado en el contexto del documento proporcionado, que estudia la diabetes tipo 1 (T1DM) en Perú durante la pandemia de COVID-19. (DOI: <https://doi.org/10.1002/hpm.3536>)
+
+```{r}
+# Cargar la librería necesaria
+library(epiR)
+
+# Procedimiento para realizar el análisis usando las especificaciones proporcionadas
+
+resultado <- epi.sscc(
+  OR = 1.85,           # Odds ratio
+  p1 = NA,             # Proporción en el grupo de control (NA, calculado)
+  p0 = 0.224,          # Proporción en el grupo experimental
+  n = NA,              # Tamaño de muestra (a completar si es necesario)
+  power = 0.80,        # Potencia del test (80%)
+  r = 1,               # Razón de exposición
+  phi.coef = 0,        # Coeficiente phi, usado para correlación en tablas 2x2
+  design = 1,          # Diseño del estudio (diseño no apareado)
+  sided.test = 2,      # Test bilateral
+  conf.level = 0.95,   # Nivel de confianza al 95%
+  method = "unmatched", # Método para datos no apareados
+  nfractional = FALSE, # Si se permite fracciones de la muestra
+  fleiss = FALSE       # Si se desea usar el ajuste de Fleiss (usualmente para estudios de concordancia)
+)
+
+# Ver el resultado
+print(resultado)
+```
+
+# Resultados e Interpretación
+
+En el marco del estudio que examina el impacto del COVID-19 en el manejo de la diabetes tipo 1 en Perú, se ha realizado una estimación detallada del tamaño de muestra necesario para evaluar las variaciones en la prevalencia de la enfermedad y su interacción con los efectos de la pandemia. El cálculo revela que se requiere una muestra total de 414 individuos, distribuidos de manera balanceada entre los grupos de casos y controles. Con un Odds Ratio (OR) de 1.85, se indica que los pacientes diagnosticados con diabetes tipo 1 durante la pandemia tienen 1.85 veces más probabilidades de enfrentar dificultades para acceder a servicios de salud. Este tamaño de muestra, acompañado de un poder estadístico del 80% y un intervalo de confianza del 95%, es adecuado para identificar diferencias significativas entre los dos grupos, permitiendo obtener conclusiones sólidas sobre cómo la pandemia ha afectado el acceso a la atención médica en personas con diabetes tipo 1.
+
+# Interpretación
+
+El estudio resalta cómo el COVID-19 intensificó las vulnerabilidades ya existentes en el sistema de salud de Perú, afectando particularmente a pacientes con enfermedades crónicas, como la diabetes tipo 1. Las restricciones impuestas durante la pandemia, junto con la escasez de recursos tanto humanos como materiales, limitaron gravemente el acceso a servicios médicos esenciales, dejando a muchos pacientes en una situación de desprotección.
+
+En este contexto, las organizaciones de pacientes desempeñaron un papel fundamental al ofrecer apoyo emocional y logístico, contribuyendo a minimizar las consecuencias adversas de la crisis sanitaria. Sin embargo, aunque la telemedicina se consolidó como una alternativa valiosa, no fue suficiente para cubrir todas las necesidades clínicas, especialmente aquellas que requieren atención presencial y pruebas de laboratorio.
+
+```{r}
+# Cargar la librería necesaria
+library(epiR)
+
+# Procedimiento para realizar el análisis usando las especificaciones proporcionadas
+
+resultado <- epi.sscc(
+  OR = 1.85,           # Odds ratio
+  p1 = NA,             # Proporción en el grupo de control (NA, calculado)
+  p0 = 0.224,          # Prevalencia esperada en el grupo experimental
+  n = NA,              # Tamaño de muestra (calculado automáticamente)
+  power = 0.80,        # Potencia del test (80%)
+  r = 1,               # Razón de exposición
+  phi.coef = 0,        # Coeficiente phi, usado para correlación en tablas 2x2
+  design = 1,          # Diseño del estudio (diseño no apareado)
+  sided.test = 2,      # Test bilateral
+  conf.level = 0.95,   # Nivel de confianza al 95%
+  method = "unmatched", # Método para datos no apareados
+  nfractional = FALSE, # Sin permitir fracciones de la muestra
+  fleiss = FALSE       # No se ajusta para estudios de concordancia
+)
+
+# Imprimir el resultado
+print(resultado)
+
+# Acceder a los resultados específicos del tamaño de muestra
+resultado_prevalencia_total <- resultado$n.total
+resultado_prevalencia_casos <- resultado$n.case
+resultado_prevalencia_controles <- resultado$n.control
+
+# Resultados e interpretación
+cat("\nResultados e interpretación:\n")
+cat("Para un estudio de prevalencia sobre el impacto de COVID-19 en la gestión de la diabetes tipo 1 en Perú, el análisis muestra que se requiere un tamaño de muestra total de", 
+    resultado_prevalencia_total, "individuos.\n")
+cat("De estos,", resultado_prevalencia_casos, "serán casos con diabetes tipo 1 afectados por la pandemia, y", 
+    resultado_prevalencia_controles, "serán individuos del grupo de control (sin diabetes tipo 1).\n")
+
+cat("\nEn base al Odds Ratio (OR) de 1.85, que refleja la mayor probabilidad de acceso limitado a atención médica para los pacientes con diabetes tipo 1 durante la pandemia, se ha calculado que el tamaño de muestra necesario es", 
+    resultado_prevalencia_total, "personas, con un poder estadístico del 80% y un nivel de confianza del 95%. Esto permitirá una evaluación precisa del impacto de COVID-19 en el manejo de la diabetes tipo 1 en el contexto peruano.\n")
+
+cat("\nEste tamaño de muestra es adecuado para detectar una diferencia significativa en la prevalencia del acceso a atención médica, medicamentos y dispositivos médicos entre los grupos afectados por la pandemia y aquellos no afectados.\n")
+
+```

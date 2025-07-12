@@ -1,0 +1,261 @@
+---
+title: "ENTREGA PC3 COVID Y DIABETES"
+format: html
+editor: visual
+---
+
+# 1. Introducción
+
+-   Este documento presenta un análisis estadístico utilizando regresión logística para evaluar los factores asociados con la mortalidad hospitalaria (desenla_fallecido) en pacientes con COVID-19 y diabetes mellitus, basado en el dataset "covid_19_diabetes.csv".
+
+-   Se realizará un análisis univariado para explorar la relación individual de las variables predictoras con el desenlace, seguido de un análisis multivariado para identificar los predictores más relevantes ajustados por otros factores.
+
+Los resultados se presentarán en tablas con odds ratios (OR), intervalos de confianza y valores p, acompañados de una interpretación detallada.
+
+# 2. Instalación y carga de paquetes
+
+El análisis se realiza en R, utilizando los siguientes paquetes:
+
+-   **tidyverse:** Para la manipulación de datos.
+
+-   **gtsummary:** Para generar tablas de regresión.
+
+-   **car:** Para evaluar multicolinealidad mediante el Factor de Inflación de la Varianza (VIF).
+
+Estos paquetes se instalan y cargan en el script proporcionado a continuación. Debemos de poner donde dice "TuUsuario" Nuestro usuario de ordenador para que se cargue correctamente el archivo .csv.
+
+```{r}
+
+# Instalación de paquetes si no están instalados
+paquetes <- c("tidyverse", "readr", "ggplot2", "dplyr", "broom")
+instalar <- paquetes[!paquetes %in% installed.packages()]
+if(length(instalar)) install.packages(instalar)
+
+# Carga de paquetes
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(broom)
+
+# Leer el archivo CSV
+data <- read_csv("C:/Users/TuUsuario/Desktop/DATA/covid_19_diabetes.csv")
+```
+
+# 3. Exploración de la estructura de los datos
+
+```{r}
+# Estructura y nombres
+str(data)
+names(data)
+summary(data)
+```
+
+# 4. Procedimientos:
+
+# *a. Documentación del análisis univariado y multivariado en el análisis de datos*
+
+el procedimiento incluye:
+
+# 1. Preparación de datos
+
+Conversión de variables categóricas a factores y manejo de valores faltantes en variables numéricas basándose en las variables XXX_medida.
+
+```{r}
+# Preparación de datos
+data <- data %>%
+  mutate(
+    # Convertir variable de desenlace a factor
+    desenla_fallecido = factor(desenla_fallecido, levels = c("No", "Sí")),
+    # Convertir variables categóricas a factores
+    across(c(raza_negra, raza_blanca, asiatico, latino, infacto_mioc, enfer_renal), 
+           ~factor(.x, levels = c("No", "Sí"))),
+    # Manejar valores faltantes en variables numéricas
+    Saturación_O2 = if_else(Saturación_O2_medida == "Sí", Saturación_O2, NA_real_),
+    Temperatura = if_else(Temperatura_medida == "Sí", Temperatura, NA_real_),
+    Presión_arterial_media = if_else(Presión_arterial_media_medida == "Sí", Presión_arterial_media, NA_real_),
+    Dímero_D = if_else(Dímero_D_medido == "Sí", Dímero_D, NA_real_),
+    Creatinina = if_else(Creatinina_medida == "Sí", Creatinina, NA_real_),
+    Glóbulos_blancos = if_else(Glóbulos_blancos_medidos == "Sí", Glóbulos_blancos, NA_real_),
+    Proteína_C_reactiva = if_else(Proteína_C_reactiva_medida == "Sí", Proteína_C_reactiva, NA_real_)
+  )
+```
+
+# 2. Análisis univariado
+
+Regresión logística para cada predictor individual contra desenla_fallecido.
+
+```{r}
+# Instalar paquetes necesarios si no están instalados
+if (!requireNamespace("cardx", quietly = TRUE)) {
+  install.packages("cardx")
+}
+if (!requireNamespace("broom.helpers", quietly = TRUE)) {
+  install.packages("broom.helpers")
+}
+if (!requireNamespace("gtsummary", quietly = TRUE)) {
+  install.packages("gtsummary")
+}
+if (!requireNamespace("dplyr", quietly = TRUE)) {
+  install.packages("dplyr")
+}
+
+# Cargar librerías necesarias
+library(cardx)
+library(broom.helpers)
+library(gtsummary)
+library(dplyr)
+
+### 2.2 El análisis univariado
+
+# En esta sección se estimarán los Odds Ratios (OR) de cada variable de manera independiente, sin ajuste por otras covariables. Se definen las categorías de referencia para las variables categóricas.
+
+data_preparada <- data %>%
+  mutate(
+    raza_negra = relevel(as.factor(raza_negra), ref = "No"),  # Ajusta el ref según tus datos
+    infacto_mioc = relevel(as.factor(infacto_mioc), ref = "No"),
+    enfer_renal = relevel(as.factor(enfer_renal), ref = "No"),
+    desenla_fallecido = relevel(as.factor(desenla_fallecido), ref = "No")  # Ref = no fallecido
+  ) %>%
+  na.omit()
+
+# Generar tabla de regresión logística univariada
+tabla_univ <- data_preparada %>%
+  tbl_uvregression(
+    method = glm,
+    method.args = list(family = binomial),
+    y = desenla_fallecido,
+    include = c(Edad, severidad, raza_negra, infacto_mioc, enfer_renal, 
+                Saturación_O2, Temperatura, Presión_arterial_media, 
+                Dímero_D, Creatinina, Glóbulos_blancos, Proteína_C_reactiva),
+    exponentiate = TRUE,
+    conf.int = TRUE,
+    hide_n = TRUE,
+    add_estimate_to_reference_rows = FALSE,
+    pvalue_fun = ~ style_pvalue(.x, digits = 3),
+    estimate_fun = ~ style_number(.x, digits = 2),
+    label = list(
+      Edad ~ "Edad (años)",
+      severidad ~ "Severidad",
+      raza_negra ~ "Raza negra",
+      infacto_mioc ~ "Infarto al miocardio",
+      enfer_renal ~ "Enfermedad renal",
+      Saturación_O2 ~ "Saturación de O2 (%)",
+      Temperatura ~ "Temperatura (°C)",
+      Presión_arterial_media ~ "Presión arterial media (mmHg)",
+      Dímero_D ~ "Dímero-D",
+      Creatinina ~ "Creatinina",
+      Glóbulos_blancos ~ "Glóbulos blancos",
+      Proteína_C_reactiva ~ "Proteína C reactiva"
+    )
+  ) %>%
+  bold_labels() %>%
+  bold_p(t = 0.05) %>%
+  modify_header(
+    estimate = "**OR no ajustado**",
+    conf.int = "**IC 95%**",
+    p.value = "**Valor P**"
+  )
+
+# Mostrar tabla univariada
+tabla_univ
+```
+
+# 3. Análisis multivariado
+
+Selección de variables relevantes basada en resultados univariados (p \< 0.20) y criterios clínicos, ajuste del modelo con eliminación hacia atrás y evaluación de multicolinealidad.
+
+```{r}
+# Librerías necesarias
+library(car)           # Para vif
+library(gtsummary)     # Para tbl_regression y tbl_merge
+library(dplyr)         # Para manejo de datos
+
+### 2.3 El análisis multivariado
+
+# Para el análisis de regresión logística multivariada, se aplicó una estrategia de selección automática de variables 
+# utilizando tres enfoques: eliminación hacia atrás (backward), selección hacia adelante (forward) y selección paso a paso (stepwise).
+
+# Paso 1. Ajuste del modelo inicial
+# Ajustamos un modelo de regresión logística binaria que incluya todas las variables candidatas
+
+data_preparada_multi <- data %>%
+  mutate(
+    raza_negra = relevel(as.factor(raza_negra), ref = "No"),  
+    infacto_mioc = relevel(as.factor(infacto_mioc), ref = "No"),
+    enfer_renal = relevel(as.factor(enfer_renal), ref = "No"),
+    desenla_fallecido = relevel(as.factor(desenla_fallecido), ref = "No")
+  ) %>%
+  na.omit()
+
+modelo_inicial <- glm(
+  desenla_fallecido ~ Edad + severidad + Saturación_O2 + Dímero_D + 
+    Creatinina + Glóbulos_blancos + Proteína_C_reactiva +
+    raza_negra + infacto_mioc + enfer_renal,
+  data = data_preparada_multi,
+  family = binomial(link = "logit")
+)
+
+# Paso 2a. Selección de variables usando eliminación hacia atrás (backward)
+modelo_backward <- step(modelo_inicial, direction = "backward", trace = FALSE)
+
+# Paso 2b. Selección de variables usando selección hacia adelante (forward)
+modelo_forward <- step(modelo_inicial, direction = "forward", trace = FALSE)
+
+# Paso 2c. Selección de variables usando selección paso a paso (stepwise)
+modelo_stepwise <- step(modelo_inicial, direction = "both", trace = FALSE)
+
+# Paso 3. Estimamos el AIC para los modelos y revisamos las variables seleccionadas
+summary(modelo_backward)
+summary(modelo_forward)
+summary(modelo_stepwise)
+
+# Paso 4. Evaluación de multicolinealidad para el modelo final seleccionado
+# (Aquí usamos el modelo_backward como ejemplo, puedes elegir el que prefieras)
+vif_resultados <- vif(modelo_backward)
+print(vif_resultados)
+
+# Paso 5. Tabla multivariada del modelo final
+tabla_multi <- tbl_regression(
+  modelo_backward,
+  exponentiate = TRUE,
+  conf.int = TRUE
+) %>%
+  bold_labels() %>%
+  modify_header(
+    estimate = "**OR ajustado**",
+    conf.int = "**IC 95%**",
+    p.value = "**Valor P**"
+  )
+
+# Paso 6. Combinar con tabla univariada (asegúrate de tener 'tabla_univ' definida previamente)
+tabla_combinada <- tbl_merge(
+  list(tabla_univ, tabla_multi),
+  tab_spanner = c("Univariado", "Multivariado")
+)
+
+# Mostrar tabla combinada
+tabla_combinada
+```
+
+# 4. Reporte e interpretación de los resultados de regresión univariado y multivariado
+
+# a) Análisis univariado:
+
+-   En el análisis univariado se encontró que la edad, severidad, enfermedad renal, saturación de O2, presión arterial media, dímero-D y proteína C reactiva mostraron una asociación estadísticamente significativa con el desenlace de fallecimiento. La edad incrementó el odds de fallecimiento en un 5 % por cada año adicional (OR 1.05; IC 95 %: 1.03–1.07; p \< 0.001).
+
+-   La severidad incrementó el odds en un 53 % (OR 1.53; IC 95 %: 1.37–1.72; p \< 0.001). La presencia de enfermedad renal duplicó el odds de fallecer (OR 2.01; IC 95 %: 1.25–3.28; p = 0.005). Por cada unidad de aumento en saturación de O2 el odds de fallecimiento se redujo (OR 0.96; IC 95 %: 0.94–0.98; p \< 0.001), al igual que con la presión arterial media (OR 0.94; IC 95 %: 0.92–0.95; p \< 0.001).
+
+-   Los aumentos en dímero-D y proteína C reactiva se asociaron con mayor odds de fallecer (OR 1.08 y 1.04 respectivamente; p \< 0.001). Raza negra, infarto al miocardio, creatinina, glóbulos blancos y temperatura no mostraron asociaciones significativas.
+
+# b) Análisis multivariado:
+
+-   En el análisis multivariado, los modelos obtenidos por backward y stepwise seleccionaron las mismas variables: severidad, saturación de O2, creatinina, raza negra y enfermedad renal.
+
+-   La severidad se mantuvo como un predictor independiente del fallecimiento, con un OR ajustado de 1.69 (IC 95 %: 1.45–1.98; p \< 0.001).
+
+-   La enfermedad renal duplicó el odds de fallecimiento (OR 2.10; IC 95 %: 1.24–3.55; p = 0.006). La creatinina mostró un efecto protector con OR ajustado de 0.85 (IC 95 %: 0.74–0.97; p = 0.015). La raza negra también se asoció con un odds menor de fallecer (OR 0.54; IC 95 %: 0.31–0.93; p = 0.024). La saturación de O2 no fue significativa en el modelo ajustado (p = 0.147).
+
+-   El modelo completo que incluyó todas las variables candidatas mostró un AIC mayor (424.04) comparado con el modelo seleccionado por backward y stepwise (AIC 417.85), lo que indica un mejor ajuste del modelo reducido.
+
+-   En conjunto, el análisis multivariado confirma que la severidad y la enfermedad renal son predictores robustos del fallecimiento, mientras que otros factores significativos en el univariado como edad, dímero-D y proteína C reactiva perdieron significancia tras el ajuste por covariables.
